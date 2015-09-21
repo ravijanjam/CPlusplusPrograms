@@ -1,0 +1,793 @@
+// -*- C++ -*-
+//
+// Package:    TrackAnalyzer/TrackAnalyzer
+// Class:      TrackAnalyzer
+// 
+/**\class TrackAnalyzer TrackAnalyzer.cc TrackAnalyzer/TrackAnalyzer/plugins/TrackAnalyzer.cc
+
+ Description: [one line class summary]
+
+ Implementation:
+     [Notes on implementation]
+*/
+// // Original Author:  Ravi Kishore Janjam
+//         Created:  Mon, 03 Aug 2015 21:05:19 GMT
+//
+//
+
+
+// system include files
+#include <memory>
+
+// user include files
+#include "FWCore/Framework/interface/Frameworkfwd.h"
+#include "FWCore/Framework/interface/EDAnalyzer.h"
+
+#include "FWCore/Framework/interface/Event.h"
+#include "FWCore/Framework/interface/MakerMacros.h"
+
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+
+#include <DataFormats/HepMCCandidate/interface/GenParticle.h>
+#include <DataFormats/HepMCCandidate/interface/GenParticleFwd.h>
+#include "DataFormats/BeamSpot/interface/BeamSpot.h"
+#include <DataFormats/Provenance/interface/Timestamp.h>
+
+#include "FWCore/ServiceRegistry/interface/Service.h"
+#include "CommonTools/UtilAlgos/interface/TFileService.h"
+
+#include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/VertexReco/interface/VertexFwd.h"
+
+// ROOT Headers
+#include "TH1.h"
+#include "TH1D.h"
+#include <TH2D.h>
+
+//
+// class declaration
+//
+
+using namespace edm;
+using namespace std; 
+using namespace reco;
+
+class TrackAnalyzer : public edm::EDAnalyzer {
+   public:
+      explicit TrackAnalyzer(const edm::ParameterSet&);
+      ~TrackAnalyzer();
+
+      static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
+      double nEventsTotal; 
+
+
+   private:
+      virtual void beginJob() override;
+      virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
+      virtual void endJob() override;
+
+	// ----------member data ---------------------------
+	unsigned int minTracks_;
+	TH1D *demohisto;
+	TH1D* chargedHadrons_[10];
+	TH1D* beamSpotHisto;
+	TH1D* testDir;
+
+	TH1D *h1pt, *h1phi, *h1eta, *h1chi2, *h1vtxColl,
+	     *h1postrk, *h1negtrk,
+	     *h1poseta, *h1posphi, *h1posPt, *h1negeta, *h1negphi, *h1negPt, 
+	     *h1posNtrks, *h1negNtrks, *h1negBypos, *h1ValidHits;
+
+
+	TH2D *h2beam;
+
+	double eventLoop = 0;
+	double nPosTrks, nNegTrks;
+
+/*	TH1D *h1phi;
+	TH1D *h1eta; 
+	TH1D *h1chi2;
+*/
+
+
+//	edm::InputTag genSrc_;
+	double etaMax_;
+	double x0;
+
+//	CentralityProvider *centrality_;	
+
+      //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
+      //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
+      //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+      //virtual void endLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
+
+      // ----------member data ---------------------------
+};
+
+//
+// constants, enums and typedefs
+//
+
+//
+// static data member definitions
+//
+
+//
+// constructors and destructor
+//
+TrackAnalyzer::TrackAnalyzer(const edm::ParameterSet& iConfig)
+: minTracks_(iConfig.getUntrackedParameter<unsigned int>("minTracks",0)),
+//genSrc_(iConfig.getParameter<edm::InputTag>("genSrc")),
+etaMax_(iConfig.getParameter<double>("etaMax"))
+{
+   //now do what ever initialization is needed
+	edm::Service<TFileService> fs;
+
+
+//	char centString[10][256] = { "0-10%", "10-20%", "20-30%", "30-40%", "40-50%",
+//					"50-60%", "60-70%", "70-80%", "80-90%", "90-100%" };
+	TH1D::SetDefaultSumw2();
+	TFileDirectory test = fs->mkdir("Test");
+	demohisto = fs->make<TH1D>("tracks" , "Tracks" , 1000 , 0 , 1000 );
+	beamSpotHisto = fs->make<TH1D>("beamSpot" , "beam" , 100 , 0 , 5000 );
+	h1pt = fs->make<TH1D>("h1pt" , "pt" , 1000 , 0 , 10);
+	h1eta = fs->make<TH1D>("h1eta" , "eta" , 100 , -10 , 10);
+	h1negeta = fs->make<TH1D>("h1negeta" , "eta" , 1000 , -10 , 10);
+	h1poseta = fs->make<TH1D>("h1poseta" , "eta" , 1000 , -10 , 10);
+	h1phi = fs->make<TH1D>("h1phi" , "phi" , 1000 , 0 , 10);
+	h1posphi = fs->make<TH1D>("h1posphi" , "phi" , 1000 , 0 , 10);
+	h1negphi = fs->make<TH1D>("h1negphi" , "phi" , 1000 , 0 , 10);
+	h1chi2 = fs->make<TH1D>("h1chi2" , "chi2" , 100 , 0 , 1);
+
+	// Number of positive & negative charged tracks
+	h1postrk = fs->make<TH1D>("h1postrk" , "positive charged tracks" , 100 , 0 , 10);
+	h1negtrk = fs->make<TH1D>("h1negtrk" , "negative charged tracks" , 100 , 0 , 10);
+
+	h1posNtrks = fs->make<TH1D>("h1posNtrks" , "positive charged particle tracks" , 100 , 0 , 10);
+	h1negNtrks = fs->make<TH1D>("h1negNtrks" , "negative charged particle tracks" , 100 , 0 , 10);
+	h1negBypos = fs->make<TH1D>("h1negBypos" , "ratio of negative to positive charged particle tracks" , 100 , 0 , 10);
+
+	h1posPt = fs->make<TH1D>("h1posPt" , "pt distribution of positively charged tracks" , 100 , 0 , 10);
+	h1negPt = fs->make<TH1D>("h1negPt" , "pt distribution of positively charged tracks" , 100 , 0 , 10);
+
+	h1posPt = 
+	h1ValidHits = fs->make<TH1D>("h1ValidHits" , "positive charged tracks" , 100 , 0 , 10);
+
+	h2beam = fs->make<TH2D>("h2beam", " dxy vs dz, transverse vs longitudinal track impact parameter ", 100, 0, 10, 100, 0, 10);
+
+	// Vertex Collection for all events
+	h1vtxColl = fs->make<TH1D>("h1vtxColl", "Vertex collection for all events", 100, 0, 500);
+
+	testDir = test.make<TH1D>("testDir", "", 100, 0, 1);
+
+	for (int i=0; i<10; i++) {
+		chargedHadrons_[i] = fs->make<TH1D>(Form("chargedHadrons%d", i),
+		 Form("Charged Hadron Spectrum, |#eta| < %f", etaMax_), 30, 0., 3.);
+
+	}
+
+//	centbins_ = fs->make<TH1I>("centbins","Centrality Distribution", 40, 0, 39);
+//	centrality_ = 0;
+//
+	nEventsTotal = 0;
+
+}
+
+
+TrackAnalyzer::~TrackAnalyzer()
+{
+ 
+   // do anything here that needs to be done at desctruction time
+   // (e.g. close files, deallocate resources etc.)
+
+}
+
+
+//
+// member functions
+//
+
+// ------------ method called for each event  ------------
+void
+TrackAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{
+	cout << "=============== INSIDE ANALYZE ==================== " << endl;
+
+//	edm::Timestamp ts;
+//
+//	cout << "Event information " << (*iEvent).isValid()  << endl;
+//
+
+	// primary vertices
+	Handle<vector<reco::Vertex>> vertex;
+	iEvent.getByLabel("offlinePrimaryVertices", vertex);
+
+	//Event Counter
+	nEventsTotal++ ;
+	cout << "nevents from analyze " << nEventsTotal << endl;
+
+	// general tracks
+	Handle<reco::TrackCollection> tracks;
+	iEvent.getByLabel("generalTracks", tracks);
+
+	std::vector<reco::Vertex> vsorted = *vertex;
+
+	// sort the vertices by number of tracks in descending order
+	std::sort( vsorted.begin(), vsorted.end(), []( reco::Vertex a, reco::Vertex b){
+		return a.tracksSize() > b.tracksSize() ? true : false ;
+	});
+
+	cout <<  "sorted vertices " << vsorted.size() << endl;
+
+	// print sorted collection of vertices 
+	/*
+	for (vector<reco::Vertex>::const_iterator it = vsorted->begin(); it != vsorted->end(); ++it )
+	{
+		cout << "sorted vertices " << vsorted[it] << endl;
+	}
+	*/
+
+	for (reco::VertexCollection::const_iterator vtxit = vertex->begin(); vtxit != vertex->end(); ++vtxit) {
+	
+		if(!vtxit->isFake()){
+			cout << "vertex size" << vtxit->tracksSize() << endl;
+			h1vtxColl->Fill(vtxit->tracksSize());
+
+		}
+
+	}
+
+	int lumi = iEvent.getLuminosityBlock().luminosityBlock();
+	
+	cout << "Luminosity Block " << lumi << endl; 
+
+	// collections of simulated particles
+	// association map between tracks and simulated particles
+	// reconstructed tracks
+	
+	// iterator for tracks
+	for (vector<reco::Vertex>::const_iterator it = vertex->begin() ; it != vertex->end(); ++it){
+//	for (unsigned it =0; it < vtx->size(); ++it ){
+
+//		reco::VertexCollection &vtx = (*vertex)[it];
+		reco::Vertex::Point p;
+		cout << "Point " << p << endl;
+	}
+
+
+//
+//
+//	if(!centrality_) centrality_ = new CentralityProvider(iSetup);
+//
+//	centrality_->newEvent(iEvent,iSetup); // make sure you do this first in every event
+//	//double c = centrality_->centralityValue();
+//	int bin = centrality_->getBin();
+//	centbins_->Fill(bin);
+//
+//
+	double posTrksCount = 0 , negTrksCount = 0 ;
+	for(unsigned it=0; it < tracks->size(); ++it){
+
+		      const reco::Track & track = (*tracks)[it];
+
+		      double eta = track.eta();
+		      double chi2 = track.chi2();
+		      double phi = track.phi();
+		      double pt  = track.pt();  
+		      math::XYZVector  momentum = track.momentum();
+		      math::XYZPoint referencePoint = track.referencePoint();
+		      string name = track.algoName();
+		      double d0 = track.d0();
+		      double dxy = track.dxy();
+		      double p = track.p();
+		      int charge = track.charge();
+			double nValidHits = track.numberOfValidHits();
+
+			nPosTrks = 0, nNegTrks = 0;
+			
+
+			//math::XYZVector p = track.Vector;			
+			cout << "Track Momentum (px, py, pz) " <<  momentum  << endl;
+
+			// Filling histograms for all tracks 
+			h1pt->Fill(pt); h1phi->Fill(phi); h1chi2->Fill(chi2); h1eta->Fill(eta);
+			h2beam->Fill(dxy, d0);
+			
+			h1ValidHits->Fill(nValidHits);
+
+			cout << "charge " << charge << endl;
+		        cout << "chi2 of the particles " << chi2 << endl;
+			cout << "eta of the tracks  " << eta << endl;
+			cout << "phi of the tracks  " << phi << endl;
+			cout << "algorithm name " << name << endl;
+			cout << "pt of the tracks  " << pt << endl;
+			cout << "magnitude of momentum of the track " << p << endl;
+			cout << "reference point aka vertex of the track " << referencePoint << endl;
+			cout << "d0 or dxy  " << d0 << endl;
+			cout << "dxy " << dxy << endl;
+			cout << "number of valid hits " << nValidHits << endl;
+		   	
+			// Filling histograms for positive & negatively charged tracks separately. 
+			if (charge == 1){ nPosTrks++; h1posPt->Fill(pt); h1postrk->Fill(pt); h1poseta->Fill(eta); h1posphi->Fill(phi); }
+			else if (charge == -1 ) { nNegTrks++; h1negPt->Fill(pt); h1negtrk->Fill(pt); h1negeta->Fill(eta); h1negphi->Fill(phi); }
+			
+	}
+
+	 // Filling the number of positive & negative tracks per event and their ratios in the event loop. 
+	 h1posNtrks->Fill(nPosTrks);
+	 h1negNtrks->Fill(nNegTrks);
+	 h1negBypos->Fill(nNegTrks/nPosTrks);
+
+	cout << "positive Tracks per event " << posTrksCount << endl;
+	cout << "negative Tracks per event " << negTrksCount << endl;
+
+	demohisto->Fill(tracks->size());
+	cout << tracks->size() << endl;
+
+	if( minTracks_ <= tracks->size()){
+		LogInfo("Demo") << "number of tracks "<< tracks->size();
+	}
+
+/*
+	Handle<reco::GenParticleCollection> kgenparticles;
+	iEvent.getByLabel(genSrc_, kgenparticles);
+
+
+	for (reco::GenParticleCollection::const_iterator particle = kgenparticles->begin();
+		particle != kgenparticles->end(); ++particle ){
+		cout << "partial pT " << particle->pt() << endl;
+
+		if (particle->status() == 1 &&
+		    particle->charge() != 0 &&
+		    fabs(particle->eta()) <= etaMax_ ) {
+			chargedHadrons_[1]->Fill( particle->pt() );
+			
+			if (abs(particle->pdgId()) == 211)
+				pions_[bin/4]->Fill(particle->pT());
+
+			if (abs(particle->pdgId()) == 311)
+				kaons_[bin/4]->Fill(particle->pT());
+
+			if (abs(particle->pdgId()) == 2212)
+				protons_[bin/4]->Fill(particle->pT());
+
+			if (abs(particle->pdgId()) == -2212)
+				antiprotons_[bin/4]->Fill(particle->pT());
+	
+		 }
+
+	}
+
+*/
+	reco::BeamSpot beamSpot;
+	edm::Handle<reco::BeamSpot> beamSpotHandle;
+	iEvent.getByLabel("offlineBeamSpot", beamSpotHandle);
+
+	if (beamSpotHandle.isValid())	
+	{
+		beamSpot = *beamSpotHandle;
+	}else
+	{
+
+		edm::LogInfo("TrackAnalyzer")
+			<< "No beam spot available from EventSetup \n" ;
+	}
+
+	
+	double x0 = beamSpot.x0();
+	beamSpotHisto->Fill(x0);
+/*
+	double y0 = beamSpot.y0();
+	double z0 = beamSpot.z0();
+	double sigmaz = beamSpot.sigmaZ();
+	double dxdz = beamSpot.dxdz();
+	double BeamWidthX = beamSpot.BeamWidthX();
+	double BeamWidthY = beamSpot.BeamWidthY();
+*/
+	// print the beam spot object
+	cout << beamSpot << endl;
+	
+
+
+#ifdef THIS_IS_AN_EVENT_EXAMPLE
+   Handle<ExampleData> pIn;
+   iEvent.getByLabel("example",pIn);
+#endif
+   
+#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
+   ESHandle<SetupData> pSetup;
+   iSetup.get<SetupRecord>().get(pSetup);
+#endif
+}
+
+
+// ------------ method called once each job just before starting event loop  ------------
+void 
+TrackAnalyzer::beginJob()
+{
+	eventLoop++;
+}
+
+// ------------ method called once each job just after ending the event loop  ------------
+void 
+TrackAnalyzer::endJob() 
+{
+	cout << "Total number of events " << nEventsTotal << endl;
+	cout << "EVENT LOOP END " << eventLoop << endl;
+}
+
+// ------------ method called when starting to processes a run  ------------
+/*
+void 
+TrackAnalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when ending the processing of a run  ------------
+/*
+void 
+TrackAnalyzer::endRun(edm::Run const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when starting to processes a luminosity block  ------------
+/*
+void 
+TrackAnalyzer::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when ending the processing of a luminosity block  ------------
+/*
+void 
+TrackAnalyzer::endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup)
+{
+	//Total number of events is the sum of the events in each of these luminosity blocks
+	Handle nEventsTotalCounter;
+	lumi.getByLabel("nEventsTotal", nEventsTotalCounter);
+	nEventsTotal += nEventsTotalCounter->value;
+
+	Handle nEventsFilteredCounter;
+	lumi.getByLabel("nEventsFiltered", nEventsFilteredCounter);
+	nEventsFiltered += nEventsFilteredCounter->value;
+}
+*/
+
+
+// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
+void
+TrackAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  //The following says we do not know what parameters are allowed so do no validation
+  // Please change this to state exactly what you do use, even if it is no parameters
+  edm::ParameterSetDescription desc;
+  desc.setUnknown();
+  descriptions.addDefault(desc);
+}
+
+//define this as a plug-in
+DEFINE_FWK_MODULE(TrackAnalyzer);
+	h1ValidHits = fs->make<TH1D>("h1ValidHits" , "positive charged tracks" , 100 , 0 , 10);
+
+	h2beam = fs->make<TH2D>("h2beam", " dxy vs dz, transverse vs longitudinal track impact parameter ", 100, 0, 10, 100, 0, 10);
+
+	// Vertex Collection for all events
+	h1vtxColl = fs->make<TH1D>("h1vtxColl", "Vertex collection for all events", 100, 0, 500);
+
+	testDir = test.make<TH1D>("testDir", "", 100, 0, 1);
+
+	for (int i=0; i<10; i++) {
+		chargedHadrons_[i] = fs->make<TH1D>(Form("chargedHadrons%d", i),
+		 Form("Charged Hadron Spectrum, |#eta| < %f", etaMax_), 30, 0., 3.);
+
+	}
+
+//	centbins_ = fs->make<TH1I>("centbins","Centrality Distribution", 40, 0, 39);
+//	centrality_ = 0;
+//
+	nEventsTotal = 0;
+
+}
+
+
+TrackAnalyzer::~TrackAnalyzer()
+{
+ 
+   // do anything here that needs to be done at desctruction time
+   // (e.g. close files, deallocate resources etc.)
+
+}
+
+
+//
+// member functions
+//
+
+// ------------ method called for each event  ------------
+void
+TrackAnalyzer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+{
+	cout << "=============== INSIDE ANALYZE ==================== " << endl;
+
+//	edm::Timestamp ts;
+//
+//	cout << "Event information " << (*iEvent).isValid()  << endl;
+//
+
+	// primary vertices
+	Handle<vector<reco::Vertex>> vertex;
+	iEvent.getByLabel("offlinePrimaryVertices", vertex);
+
+	//Event Counter
+	nEventsTotal++ ;
+	cout << "nevents from analyze " << nEventsTotal << endl;
+
+	// general tracks
+	Handle<reco::TrackCollection> tracks;
+	iEvent.getByLabel("generalTracks", tracks);
+
+	std::vector<reco::Vertex> vsorted = *vertex;
+
+	// sort the vertices by number of tracks in descending order
+	std::sort( vsorted.begin(), vsorted.end(), []( reco::Vertex a, reco::Vertex b){
+		return a.tracksSize() > b.tracksSize() ? true : false ;
+	});
+
+	cout <<  "sorted vertices " << vsorted.size() << endl;
+
+	// print sorted collection of vertices 
+	/*
+	for (vector<reco::Vertex>::const_iterator it = vsorted->begin(); it != vsorted->end(); ++it )
+	{
+		cout << "sorted vertices " << vsorted[it] << endl;
+	}
+	*/
+
+	for (reco::VertexCollection::const_iterator vtxit = vertex->begin(); vtxit != vertex->end(); ++vtxit) {
+	
+		if(!vtxit->isFake()){
+			cout << "vertex size" << vtxit->tracksSize() << endl;
+			h1vtxColl->Fill(vtxit->tracksSize());
+
+		}
+
+	}
+
+	int lumi = iEvent.getLuminosityBlock().luminosityBlock();
+	
+	cout << "Luminosity Block " << lumi << endl; 
+
+	// collections of simulated particles
+	// association map between tracks and simulated particles
+	// reconstructed tracks
+	
+	// iterator for tracks
+	for (vector<reco::Vertex>::const_iterator it = vertex->begin() ; it != vertex->end(); ++it){
+//	for (unsigned it =0; it < vtx->size(); ++it ){
+
+//		reco::VertexCollection &vtx = (*vertex)[it];
+		reco::Vertex::Point p;
+		cout << "Point " << p << endl;
+	}
+
+
+//
+//
+//	if(!centrality_) centrality_ = new CentralityProvider(iSetup);
+//
+//	centrality_->newEvent(iEvent,iSetup); // make sure you do this first in every event
+//	//double c = centrality_->centralityValue();
+//	int bin = centrality_->getBin();
+//	centbins_->Fill(bin);
+//
+//
+	double posTrksCount = 0 , negTrksCount = 0 ;
+	for(unsigned it=0; it < tracks->size(); ++it){
+
+		      const reco::Track & track = (*tracks)[it];
+
+		      double eta = track.eta();
+		      double chi2 = track.chi2();
+		      double phi = track.phi();
+		      double pt  = track.pt();  
+		      math::XYZVector  momentum = track.momentum();
+		      math::XYZPoint referencePoint = track.referencePoint();
+		      string name = track.algoName();
+		      double d0 = track.d0();
+		      double dxy = track.dxy();
+		      double p = track.p();
+		      int charge = track.charge();
+			double nValidHits = track.numberOfValidHits();
+
+			nPosTrks = 0, nNegTrks = 0;
+			
+
+			//math::XYZVector p = track.Vector;			
+			cout << "Track Momentum (px, py, pz) " <<  momentum  << endl;
+
+			// Filling histograms for all tracks 
+			h1pt->Fill(pt); h1phi->Fill(phi); h1chi2->Fill(chi2); h1eta->Fill(eta);
+			h2beam->Fill(dxy, d0);
+			
+			h1ValidHits->Fill(nValidHits);
+
+			cout << "charge " << charge << endl;
+		        cout << "chi2 of the particles " << chi2 << endl;
+			cout << "eta of the tracks  " << eta << endl;
+			cout << "phi of the tracks  " << phi << endl;
+			cout << "algorithm name " << name << endl;
+			cout << "pt of the tracks  " << pt << endl;
+			cout << "magnitude of momentum of the track " << p << endl;
+			cout << "reference point aka vertex of the track " << referencePoint << endl;
+			cout << "d0 or dxy  " << d0 << endl;
+			cout << "dxy " << dxy << endl;
+			cout << "number of valid hits " << nValidHits << endl;
+		   	
+			// Filling histograms for positive & negatively charged tracks separately. 
+			if (charge == 1){ nPosTrks++; h1posPt->Fill(pt); h1postrk->Fill(pt); h1poseta->Fill(eta); h1posphi->Fill(phi); }
+			else if (charge == -1 ) { nNegTrks++; h1negPt->Fill(pt); h1negtrk->Fill(pt); h1negeta->Fill(eta); h1negphi->Fill(phi); }
+			
+	}
+
+	 // Filling the number of positive & negative tracks per event and their ratios in the event loop. 
+	 h1posNtrks->Fill(nPosTrks);
+	 h1negNtrks->Fill(nNegTrks);
+	 h1negBypos->Fill(nNegTrks/nPosTrks);
+
+	cout << "positive Tracks per event " << posTrksCount << endl;
+	cout << "negative Tracks per event " << negTrksCount << endl;
+
+	demohisto->Fill(tracks->size());
+	cout << tracks->size() << endl;
+
+	if( minTracks_ <= tracks->size()){
+		LogInfo("Demo") << "number of tracks "<< tracks->size();
+	}
+
+/*
+	Handle<reco::GenParticleCollection> kgenparticles;
+	iEvent.getByLabel(genSrc_, kgenparticles);
+
+
+	for (reco::GenParticleCollection::const_iterator particle = kgenparticles->begin();
+		particle != kgenparticles->end(); ++particle ){
+		cout << "partial pT " << particle->pt() << endl;
+
+		if (particle->status() == 1 &&
+		    particle->charge() != 0 &&
+		    fabs(particle->eta()) <= etaMax_ ) {
+			chargedHadrons_[1]->Fill( particle->pt() );
+			
+			if (abs(particle->pdgId()) == 211)
+				pions_[bin/4]->Fill(particle->pT());
+
+			if (abs(particle->pdgId()) == 311)
+				kaons_[bin/4]->Fill(particle->pT());
+
+			if (abs(particle->pdgId()) == 2212)
+				protons_[bin/4]->Fill(particle->pT());
+
+			if (abs(particle->pdgId()) == -2212)
+				antiprotons_[bin/4]->Fill(particle->pT());
+	
+		 }
+
+	}
+
+*/
+	reco::BeamSpot beamSpot;
+	edm::Handle<reco::BeamSpot> beamSpotHandle;
+	iEvent.getByLabel("offlineBeamSpot", beamSpotHandle);
+
+	if (beamSpotHandle.isValid())	
+	{
+		beamSpot = *beamSpotHandle;
+	}else
+	{
+
+		edm::LogInfo("TrackAnalyzer")
+			<< "No beam spot available from EventSetup \n" ;
+	}
+
+	
+	double x0 = beamSpot.x0();
+	beamSpotHisto->Fill(x0);
+/*
+	double y0 = beamSpot.y0();
+	double z0 = beamSpot.z0();
+	double sigmaz = beamSpot.sigmaZ();
+	double dxdz = beamSpot.dxdz();
+	double BeamWidthX = beamSpot.BeamWidthX();
+	double BeamWidthY = beamSpot.BeamWidthY();
+*/
+	// print the beam spot object
+	cout << beamSpot << endl;
+	
+
+
+#ifdef THIS_IS_AN_EVENT_EXAMPLE
+   Handle<ExampleData> pIn;
+   iEvent.getByLabel("example",pIn);
+#endif
+   
+#ifdef THIS_IS_AN_EVENTSETUP_EXAMPLE
+   ESHandle<SetupData> pSetup;
+   iSetup.get<SetupRecord>().get(pSetup);
+#endif
+}
+
+
+// ------------ method called once each job just before starting event loop  ------------
+void 
+TrackAnalyzer::beginJob()
+{
+	eventLoop++;
+}
+
+// ------------ method called once each job just after ending the event loop  ------------
+void 
+TrackAnalyzer::endJob() 
+{
+	cout << "Total number of events " << nEventsTotal << endl;
+	cout << "EVENT LOOP END " << eventLoop << endl;
+}
+
+// ------------ method called when starting to processes a run  ------------
+/*
+void 
+TrackAnalyzer::beginRun(edm::Run const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when ending the processing of a run  ------------
+/*
+void 
+TrackAnalyzer::endRun(edm::Run const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when starting to processes a luminosity block  ------------
+/*
+void 
+TrackAnalyzer::beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&)
+{
+}
+*/
+
+// ------------ method called when ending the processing of a luminosity block  ------------
+/*
+void 
+TrackAnalyzer::endLuminosityBlock(edm::LuminosityBlock const& lumi, edm::EventSetup const& setup)
+{
+	//Total number of events is the sum of the events in each of these luminosity blocks
+	Handle nEventsTotalCounter;
+	lumi.getByLabel("nEventsTotal", nEventsTotalCounter);
+	nEventsTotal += nEventsTotalCounter->value;
+
+	Handle nEventsFilteredCounter;
+	lumi.getByLabel("nEventsFiltered", nEventsFilteredCounter);
+	nEventsFiltered += nEventsFilteredCounter->value;
+}
+*/
+
+
+// ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
+void
+TrackAnalyzer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
+  //The following says we do not know what parameters are allowed so do no validation
+  // Please change this to state exactly what you do use, even if it is no parameters
+  edm::ParameterSetDescription desc;
+  desc.setUnknown();
+  descriptions.addDefault(desc);
+}
+
+//define this as a plug-in
+DEFINE_FWK_MODULE(TrackAnalyzer);
