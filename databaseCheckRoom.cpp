@@ -7,7 +7,7 @@ int main(){
 
 	int i;
 
-	int dbContacted[] = {0};
+	int dbContactedInt[] = {2744, 2726, 2665, 2508, 198, 660, 47, 1903, 2008, 2315, 2549, 2584, 2665, 2739, 2744, 2757, 2794, 2809, 2816, 2813, 2796, 2738, 2549, 55, 813, 1006};
 	int dbImpossibleInt[] = {8719, 2698, 2657, 2592, 2586, 2369, 2363, 2279, 2196, 1930, 1734, 194, 273, 849, 1127, 1409, 620, 640, 1284, 2773, 2738, 2731, 2684, 2697, 2668, 2666, 2174, 680, 863, 1058, 1368, 138, 681, 2774, 2777, 434, 1641, 633, 710, 1409, 1186, 900, 849, 456, 260, 268, 194, 153, 1734, 1920, 1930, 2279, 2319, 2508, 2592, 2657, 8719, 2760, 2769, 2792, 2818, 2820};
 	
 
@@ -18,7 +18,7 @@ int main(){
 	vector<int> dbAll(dbAllInt, dbAllInt + sizeof(dbAllInt)/sizeof(int));
 
 	// Pass the array into a vector for easy access
-	vector<int> dbContacted( dbContacted,  dbContacted + sizeof(dbContacted)/sizeof(int));
+	vector<int> dbContacted( dbContactedInt,  dbContactedInt + sizeof(dbContactedInt)/sizeof(int));
 
 	cout << "Verify the existence and in which data base : " << endl;
 		
@@ -47,6 +47,7 @@ int main(){
 
 	} while ( i!=0 );
 
+	cout << "Bye bye .... " << endl;
 	return 0;
 
 }
