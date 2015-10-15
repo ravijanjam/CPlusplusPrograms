@@ -34,7 +34,7 @@ int main(){
 			if ( i == match ) cout << "The number : " << *it << "  already exists in " << endl;
 		}
 		
-			cout << "The given number if now found in the database" << endl;
+			cout << "The given number if not found in the database" << endl;
 
 		//for (int k=0; k<dbAll.size(); k++) cout << dbAll.size()  << endl;
 	
