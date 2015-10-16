@@ -1,0 +1,8 @@
+The programs are written in linux, tested and functional.
+
+To run a program, at the command prompt
+
+1. g++ yourFile.cpp
+2. ./a.out
+
+Where a.out is the name of the outputfile
