@@ -18,3 +18,14 @@ void passArrayToFunc(){
 	readArr(arr);
 
 }
+
+/*
+
+To run the program at the command prompt to
+1. g++ passArrayToFunc.C
+2. ./a.out
+
+Passes a 1D array from main to a function and 
+reads the array there. 
+
+*/
