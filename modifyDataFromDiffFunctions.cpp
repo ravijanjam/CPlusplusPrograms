@@ -95,29 +95,7 @@ from different functions.
 To run from the command prompt do : 
 1. g++ modifyDataFromDiffFunctions.cpp
 2. ./a.out
-
-You should see an output that looks like this
-
----------------------------------------------------
-stuff added from main 	main	0	
-
-from addWord	main	addWord	0	1	
-calling updated userData from main - round 1
-main	addWord	0	1	
-
-from addNums	main	addWord	0	1	
-calling updated userData from main - round 2
-main	addWord	addnums	0	1	2	
-preon@debian:~/IsingModel/CplusplusPrograms$ ./a.out 
-stuff added from main 	main	0	
-
-from addWord	main	addWord	0	1	
-calling updated userData from main - round 1
-main	addWord	0	1	
-
-from addNums	main	addWord	0	1	
-calling updated userData from main - round 2
-main	addWord	addnums	0	1	2	
+	1	2	
 
 ---------------------------------------------------
 
