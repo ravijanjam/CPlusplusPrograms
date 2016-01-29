@@ -246,7 +246,8 @@ void mergeErrors_v5(){
 
 
 	/* Turn off error bars for a while */
-	for (int i=0; i<27; i++){
+	bool turnOn = 1;
+	for (int i=0; i<27 && turnOn; i++){
 
 		// Cent 00-10
 		p8557_d1x1y1_xerrplus[i] = 0;p8557_d1x1y1_xerrminus[i] = 0;
@@ -322,8 +323,9 @@ void mergeErrors_v5(){
 	gp6->SetMarkerColor(4);
 	gp6->SetMarkerStyle(21);
 //	gp6->Draw("same");
+	c1->SetLogy(1);
 	mg->Add(gp6);
-	mg->SetTitle("Spectra of #Xi^{+} all the five Centrality Bins");
+	mg->SetTitle("Spectra of #Xi^{+} all the Centrality Bins in PbPb collisions, ALICE");
 	gPad->SetGrid();
 	mg->Draw("alp");
 	mg->GetXaxis()->SetTitle("p_{T} (GeV/c)");

@@ -65,18 +65,25 @@ void RRootHistRead_v2(){
 
 	c->SetLogy(1);
 	TGraph *g = new TGraph(nBins, pT, spectraFromFit);
-	g->SetTitle("#Xi^{+} from pPb data");
+	g->SetTitle("#Xi^{+} spectra from pPb data, CMS");
 	g->SetMarkerStyle(21);
 	g->SetMarkerSize(1.5);
 	g->SetMarkerColor(kRed);
-	g->Draw("ALP");
+	g->Draw("alp");
 	h->Draw("same");
 	
 
 	TLegend *lg = new TLegend(0.67, 0.77, 0.87, 0.87);
 	lg->AddEntry(h, "Histogram", "lp");
-	lg->AddEntry(g, "Reconstructed function, tgraph", "lp");
+	lg->AddEntry(g, "Reconstructed function from fit, 27 bins", "lp");
 	lg->AddEntry(fitFn, "Fit from the function", "lp");
 	lg->Draw();
 }
 
+
+/*
+ * Notes :
+ * 1. The parameters from the fit are observed at the output and put by hand in the interpolating function. This needs to be automated.
+ * 2. The input is put by hand, needs to be given during run time. So, is the case with histograms and their names. 
+ *
+ */
