@@ -4,26 +4,29 @@
 // ROOT Headers
 #include <TH1D.h>
 
-TH1D* setHistCosmetics( int nBins, int binMin, int binMax ){
 
-	TH1D *h1 = new TH1D("h1", "First hist", nBins, binMin, binMax);
-	h1->FillRandom("gaus", 1000);
+TH1D* setHistCosmetics( TH1D *h, Color_t kcolor ){
 
-	// Apply cosmetics
-	h1->SetLineColor(kGreen);
-	return h1;
+	h->SetLineColor(kcolor);
+	return h;
 }
 
 void RSetHistCosmeticsFromFunction(){
 
+	// Initialize Histograms
+	TH1D *h1 = new TH1D("h1", "First hist", 100, -10, 10);
 	TH1D *h2 = new TH1D("h2", "First hist", 100, -10, 10);
 
-	TF1 *f = new TF1("f", "exp(-x)", 0, 6.28);
-	h2->FillRandom("f", 1000);
-	h2->SetLineColor(kRed);
-	h2->Draw();
+	// Sample data from functions randomly
+	TF1 *f1 = new TF1("f1", "exp(-x)", 0, 6.28);
+	TF1 *f2 = new TF1("f2", "sin(x)*exp(-x)", 0, 6.28);
 
-	setHistCosmetics(100, -10, 10)->Draw("same");
+	h1->FillRandom("f1", 1000);
+	h2->FillRandom("f2", 1000);
+
+	// Draw the returned histogram from function
+	setHistCosmetics(h1, 62)->Draw();
+	setHistCosmetics(h2, 72)->Draw("same");
 
 }
 
@@ -35,7 +38,7 @@ void RSetHistCosmeticsFromFunction(){
  *
  * This program can be a template when your macro is going to have
  * lots of histograms and a lots of lines are to be written just for
- * the same of cosmetics
+ * the sake of cosmetics per histogram
  *
  */
 
