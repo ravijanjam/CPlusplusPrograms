@@ -8,6 +8,7 @@
 #include <TGraph.h>
 #include <TH1D.h>
 #include <TLatex.h>
+#include <TLegend.h>
 
 using namespace std;
 
@@ -286,7 +287,7 @@ void mergeErrors_v5(){
 
 //	TGraph *gp2 = new TGraph(27, p8557_d2x1y1_xval, p8557_d2x1y1_yval);
 	TGraphAsymmErrors *gp2 = new TGraphAsymmErrors(27, p8557_d2x1y1_xval, p8557_d2x1y1_yval,   p8557_d2x1y1_xerrplus,   p8557_d2x1y1_yerrplus,    p8557_d2x1y1_xerrminus, p8557_d2x1y1_yerrminus);
-	gp2->SetMarkerColor(4);
+	gp2->SetMarkerColor(2);
 	gp2->SetMarkerStyle(21);
 	mg->Add(gp2);
 //	gp2->Draw("same");
@@ -341,6 +342,18 @@ void mergeErrors_v5(){
 	gc->SetMarkerStyle(21);
 	gc->SetMarkerColor(4);
 	gc->Draw("ALP same");
+
+
+
+	c1->cd();
+	TLegend *lg = new TLegend(0.511494,0.672043,0.892241,0.870968);
+	lg->AddEntry(gp1, "0-10% Centrality", "lp");
+	lg->AddEntry(gp2, "10-20% Centrality", "lp");
+	lg->AddEntry(gp3, "20-40% Centrality", "lp");
+	lg->AddEntry(gp4, "40-60% Centrality", "lp");
+	lg->AddEntry(gp5, "60-80% Centrality", "lp");
+	lg->AddEntry(gp6, "For All Centralities", "lp");
+	lg->Draw();
 //	*/
 
 
