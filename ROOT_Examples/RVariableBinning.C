@@ -17,7 +17,8 @@ void RVariableBinning(){
 	h->FillRandom("gaus", 10000);
 
 	TH1D *hVarBin;
-	hVarBin = (TH1D*)h->Clone();
+	// Closing not necessary, since the initial histogram is rebinned
+//	hVarBin = (TH1D*)h->Clone();
 	hVarBin = (TH1D*)h->Rebin(nBins, "hVarBin", binArr);
 
 	cout << "========================================================" << endl;
@@ -44,5 +45,7 @@ void RVariableBinning(){
 
 /* 
  *
- * Note that the data from the main histogram h is used to rebin another histogram
+ * Note that the data from the main histogram h is used to rebin another histogram,
+ * The data from the initial histogram is not modified when rebinned, since the rebin is
+ * an operation, as the plot show it. 
  */
